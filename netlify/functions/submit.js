@@ -1,53 +1,120 @@
-const form = document.getElementById("applicationForm");
-const submitBtn = document.getElementById("submitBtn");
-const status = document.getElementById("status");
-
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Submitting...";
-  status.textContent = "";
-
-  try {
-    const formData = new FormData(form);
-
-    const data = {
-      name: formData.get("name"),
-      phone: formData.get("phone"),
-      national_id: formData.get("national_id"),
-      amount: formData.get("amount"),
-      employment: formData.get("employment"),
-      income: formData.get("income"),
-      period: formData.get("period"),
-      terms: formData.get("terms") !== null
-    };
-
-    const response = await fetch("/.netlify/functions/submit", {
-      method: "POST",
+exports.handler = async (event) => {
+  // Only allow POST requests
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(data)
-    });
+      body: JSON.stringify({
+        error: "Method not allowed"
+      })
+    };
+  }
 
-    const result = await response.json();
+  try {
+    const data = JSON.parse(event.body || "{}");
 
-    if (!response.ok) {
-      throw new Error(result.error || "Could not submit. Please try again.");
+    // Check required fields
+    const requiredFields = [
+      "name",
+      "phone",
+      "national_id",
+      "amount",
+      "employment",
+      "income",
+      "period"
+    ];
+
+    for (const field of requiredFields) {
+      if (!data[field]) {
+        return {
+          statusCode: 400,
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            error: `Missing required field: ${field}`
+          })
+        };
+      }
     }
 
-    status.textContent =
-      result.message ||
-      "Application received! Thank you for applying. We'll review your details and be in touch soon.";
+    // Terms must be accepted
+    if (data.terms !== true) {
+      return {
+        statusCode: 400,
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          error: "You must agree to the Terms and Conditions."
+        })
+      };
+    }
 
-    form.reset();
+    // Basic validation
+    const amount = Number(data.amount);
+    const income = Number(data.income);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return {
+        statusCode: 400,
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          error: "Invalid loan amount."
+        })
+      };
+    }
+
+    if (!Number.isFinite(income) || income < 0) {
+      return {
+        statusCode: 400,
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          error: "Invalid income amount."
+        })
+      };
+    }
+
+    // Application accepted for processing.
+    // Do NOT log or send the National ID to Telegram.
+    console.log("Loan application received:", {
+      name: data.name,
+      phone: data.phone,
+      amount: data.amount,
+      employment: data.employment,
+      income: data.income,
+      period: data.period,
+      terms: data.terms
+    });
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message:
+          "Application received! Thank you for applying for an EcoCash Loan. We'll review your details and be in touch soon."
+      })
+    };
 
   } catch (error) {
-    status.textContent =
-      error.message || "Could not submit. Please try again.";
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Submit Application";
+    console.error("Application error:", error);
+
+    return {
+      statusCode: 500,
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        error: "Unable to process the application right now. Please try again later."
+      })
+    };
   }
-});
+};
