@@ -3,12 +3,17 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Method not allowed" })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        error: "Method not allowed"
+      })
     };
   }
 
   try {
+    // Read submitted data
     const data = JSON.parse(event.body || "{}");
 
     // Required fields
@@ -22,6 +27,7 @@ exports.handler = async (event) => {
       "period"
     ];
 
+    // Check required fields
     for (const field of required) {
       if (
         data[field] === undefined ||
@@ -30,7 +36,9 @@ exports.handler = async (event) => {
       ) {
         return {
           statusCode: 400,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             error: `Missing required field: ${field}`
           })
@@ -42,54 +50,72 @@ exports.handler = async (event) => {
     if (data.terms !== true && data.terms !== "true") {
       return {
         statusCode: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           error: "Please accept the Terms and Conditions."
         })
       };
     }
 
-    // Validate numbers
+    // Convert numbers
     const amount = Number(data.amount);
     const income = Number(data.income);
 
+    // Validate loan amount
     if (!Number.isFinite(amount) || amount <= 0) {
       return {
         statusCode: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           error: "Invalid loan amount."
         })
       };
     }
 
+    // Validate income
     if (!Number.isFinite(income) || income < 0) {
       return {
         statusCode: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           error: "Invalid income amount."
         })
       };
     }
 
-    // Supabase credentials
+    // Get Supabase environment variables
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    // Safe diagnostic logging.
+    // This DOES NOT expose the actual secret values.
+    console.log("Supabase configuration:", {
+      hasSupabaseUrl: Boolean(supabaseUrl),
+      hasSupabaseKey: Boolean(supabaseKey)
+    });
+
+    // Check environment variables
     if (!supabaseUrl || !supabaseKey) {
       console.error("Supabase environment variables are missing.");
 
       return {
         statusCode: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           error: "Server configuration error."
         })
       };
     }
 
-    // Save EVERYTHING from the form
+    // Prepare application data
     const application = {
       name: String(data.name).trim(),
       phone: String(data.phone).trim(),
@@ -101,6 +127,7 @@ exports.handler = async (event) => {
       terms: true
     };
 
+    // Save application to Supabase
     const response = await fetch(
       `${supabaseUrl}/rest/v1/loan_applications`,
       {
@@ -115,24 +142,32 @@ exports.handler = async (event) => {
       }
     );
 
+    // Handle Supabase errors
     if (!response.ok) {
       const errorText = await response.text();
+
       console.error("Supabase error:", errorText);
 
       return {
         statusCode: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           error: "Could not save the application."
         })
       };
     }
 
+    // Successful submission
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
-        message: "Application received successfully."
+        message:
+          "Application received! Thank you for applying for an EcoCash Loan. We'll review your details and be in touch soon."
       })
     };
 
@@ -141,7 +176,9 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
         error: "Unable to process the application right now."
       })
