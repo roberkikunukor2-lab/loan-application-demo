@@ -15,7 +15,7 @@ exports.handler = async (event) => {
   try {
     const data = JSON.parse(event.body || "{}");
 
-    // Check required fields
+    // Required fields
     const requiredFields = [
       "name",
       "phone",
@@ -40,20 +40,25 @@ exports.handler = async (event) => {
       }
     }
 
-    // Terms must be accepted
-    if (data.terms !== true) {
+    // Accept the checkbox value sent by the browser
+    const termsAccepted =
+      data.terms === true ||
+      data.terms === "true" ||
+      data.terms === "on";
+
+    if (!termsAccepted) {
       return {
         statusCode: 400,
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          error: "You must agree to the Terms and Conditions."
+          error: "You must accept the Terms and Conditions."
         })
       };
     }
 
-    // Basic validation
+    // Validate amounts
     const amount = Number(data.amount);
     const income = Number(data.income);
 
@@ -81,16 +86,15 @@ exports.handler = async (event) => {
       };
     }
 
-    // Application accepted for processing.
-    // Do NOT log or send the National ID to Telegram.
+    // Application received.
+    // Do not send or log the National ID.
     console.log("Loan application received:", {
       name: data.name,
       phone: data.phone,
       amount: data.amount,
       employment: data.employment,
       income: data.income,
-      period: data.period,
-      terms: data.terms
+      period: data.period
     });
 
     return {
@@ -113,7 +117,8 @@ exports.handler = async (event) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        error: "Unable to process the application right now. Please try again later."
+        error:
+          "Unable to process the application right now. Please try again later."
       })
     };
   }
