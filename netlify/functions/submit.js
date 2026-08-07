@@ -1,5 +1,4 @@
 exports.handler = async (event) => {
-  // Only allow POST requests
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -13,10 +12,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Read submitted data
     const data = JSON.parse(event.body || "{}");
 
-    // Required fields
+    // Check required fields
     const required = [
       "name",
       "phone",
@@ -27,7 +25,6 @@ exports.handler = async (event) => {
       "period"
     ];
 
-    // Check required fields
     for (const field of required) {
       if (
         data[field] === undefined ||
@@ -46,7 +43,7 @@ exports.handler = async (event) => {
       }
     }
 
-    // Terms must be accepted
+    // Check Terms
     if (data.terms !== true && data.terms !== "true") {
       return {
         statusCode: 400,
@@ -59,11 +56,9 @@ exports.handler = async (event) => {
       };
     }
 
-    // Convert numbers
     const amount = Number(data.amount);
     const income = Number(data.income);
 
-    // Validate loan amount
     if (!Number.isFinite(amount) || amount <= 0) {
       return {
         statusCode: 400,
@@ -76,7 +71,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // Validate income
     if (!Number.isFinite(income) || income < 0) {
       return {
         statusCode: 400,
@@ -89,21 +83,16 @@ exports.handler = async (event) => {
       };
     }
 
-    // Get Supabase environment variables
-    const supabaseUrl = process.env.SUPABASE_URL;
+    // Get environment variables
+    const rawSupabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    // Safe diagnostic logging.
-    // This DOES NOT expose the actual secret values.
-    console.log("Supabase configuration:", {
-      hasSupabaseUrl: Boolean(supabaseUrl),
-      hasSupabaseKey: Boolean(supabaseKey)
+    console.log("Environment check:", {
+      hasUrl: Boolean(rawSupabaseUrl),
+      hasKey: Boolean(supabaseKey)
     });
 
-    // Check environment variables
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("Supabase environment variables are missing.");
-
+    if (!rawSupabaseUrl || !supabaseKey) {
       return {
         statusCode: 500,
         headers: {
@@ -115,7 +104,16 @@ exports.handler = async (event) => {
       };
     }
 
-    // Prepare application data
+    // Remove trailing slashes
+    const supabaseUrl = rawSupabaseUrl.trim().replace(/\/+$/, "");
+
+    // Build Supabase REST URL
+    const supabaseEndpoint =
+      `${supabaseUrl}/rest/v1/loan_applications`;
+
+    // Log endpoint only — never log the secret key
+    console.log("Supabase endpoint:", supabaseEndpoint);
+
     const application = {
       name: String(data.name).trim(),
       phone: String(data.phone).trim(),
@@ -127,26 +125,21 @@ exports.handler = async (event) => {
       terms: true
     };
 
-    // Save application to Supabase
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/loan_applications`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-          "Prefer": "return=minimal"
-        },
-        body: JSON.stringify(application)
-      }
-    );
+    const response = await fetch(supabaseEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${supabaseKey}`,
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify(application)
+    });
 
-    // Handle Supabase errors
     if (!response.ok) {
       const errorText = await response.text();
 
-      console.error("Supabase error:", errorText);
+      console.error("Supabase response:", errorText);
 
       return {
         statusCode: 500,
@@ -159,7 +152,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // Successful submission
     return {
       statusCode: 200,
       headers: {
@@ -172,7 +164,7 @@ exports.handler = async (event) => {
     };
 
   } catch (error) {
-    console.error("Submission error:", error);
+    console.error("Function error:", error);
 
     return {
       statusCode: 500,
