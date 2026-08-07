@@ -13,10 +13,13 @@ form.addEventListener("submit", async (event) => {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
-    // Make sure the terms checkbox was accepted
+    // Make sure Terms and Conditions were accepted
     if (!formData.has("terms")) {
       throw new Error("Please accept the Terms and Conditions.");
     }
+
+    // Convert checkbox value to Boolean
+    data.terms = true;
 
     const response = await fetch("/.netlify/functions/submit", {
       method: "POST",
@@ -39,7 +42,8 @@ form.addEventListener("submit", async (event) => {
 
   } catch (error) {
     console.error("Submission error:", error);
-    status.textContent = "Could not submit. Please try again.";
+    status.textContent =
+      error.message || "Could not submit. Please try again.";
   } finally {
     button.disabled = false;
     button.textContent = "Submit Application";
