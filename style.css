@@ -6,6 +6,7 @@ body {
   margin: 0;
   font-family: Arial, sans-serif;
   color: #111;
+  background: #fff;
 }
 
 main {
@@ -25,7 +26,8 @@ main {
 .brand img {
   width: 55px;
   height: 55px;
-  object-fit: contain;
+  object-fit: cover;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
@@ -51,7 +53,7 @@ label {
   font-weight: 700;
 }
 
-/* Inputs */
+/* Inputs and select boxes */
 input,
 select {
   display: block;
@@ -62,9 +64,27 @@ select {
   border-radius: 15px;
   background: #fff;
   font-size: 22px;
+  color: #111;
 }
 
-/* Button */
+/* Checkbox / terms */
+label.terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+label.terms input {
+  width: auto;
+  margin-top: 3px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+/* Submit button */
 button {
   width: 100%;
   padding: 20px;
@@ -74,31 +94,40 @@ button {
   color: #fff;
   font-size: 20px;
   font-weight: 700;
+  cursor: pointer;
 }
 
 button:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
 }
 
+/* Submission status */
 #status {
   text-align: center;
   font-weight: 600;
   margin-top: 20px;
 }
 
-/* Phone */
+/* Mobile phones */
 @media (max-width: 480px) {
   main {
     padding: 18px 28px 50px;
   }
 
-  .brand h1 {
-    font-size: 32px;
+  .brand {
+    gap: 12px;
   }
 
   .brand img {
-    width: 48px;
-    height: 48px;
+    width: 55px;
+    height: 55px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .brand h1 {
+    font-size: 32px;
   }
 
   .intro {
@@ -109,4 +138,4 @@ button:disabled {
   select {
     font-size: 20px;
   }
-  }
+}
